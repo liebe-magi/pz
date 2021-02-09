@@ -32,7 +32,7 @@ var versionCmd = &cobra.Command{
 }
 
 func printVersion() {
-	fmt.Println("pz: A CLI tool for paiza.jp v0.1")
+	fmt.Println("pz: A CLI tool for paiza.jp v0.1.1")
 }
 
 func init() {
