@@ -232,9 +232,12 @@ func getQuestion(p *agouti.Page) (string, []string, []string, error) {
 	}
 	contents := strings.NewReader(dom)
 	contentsDom, err := goquery.NewDocumentFromReader(contents)
-	quesID, err := p.FindByID("tab-problem").First("h2").Text()
+	quesID, err := p.FindByClass("section3").First("h2").Text()
 	if err != nil {
-		return "", []string{}, []string{}, fmt.Errorf("[ERR]This page is not contain a question")
+		quesID, err = p.FindByID("tab-problem").First("h2").Text()
+		if err != nil {
+			return "", []string{}, []string{}, fmt.Errorf("[ERR]This page is not contain a question")
+		}
 	}
 	quesID = strings.Split(quesID, ":")[0]
 	input := []string{}
