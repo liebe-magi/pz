@@ -13,7 +13,7 @@ Paizaスキルチェック用CLIツール
 
 できることと使い方の概要を以下の動画で紹介しています。
 
-<iframe width="560" height="315" src="https://www.youtube.com/embed/FTqw5-lfkNE" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+[![概要動画](/img/explain.png)](http://www.youtube.com/watch?v=FTqw5-lfkNE "概要動画")
 
 ## 導入方法
 
