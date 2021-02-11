@@ -66,7 +66,7 @@ var runCmd = &cobra.Command{
 		}
 		tempDir := filepath.Join(configDir, temp)
 		if f, err := os.Stat(tempDir); os.IsNotExist(err) || !f.IsDir() {
-			log.Fatalf("Template: %v is not found\n", args[0])
+			log.Fatalf("[ERR] Template: %v is not found\n", args[0])
 		}
 		if err := run(temp); err != nil {
 			log.Fatalln(err)
@@ -127,6 +127,7 @@ func interactive(p *agouti.Page, temp string) error {
 	fmt.Print("> ")
 	for stdin.Scan() {
 		text := stdin.Text()
+		textSplit := strings.Split(text, " ")
 		if text == "get" || text == "g" {
 			if err := get(p, temp); err != nil {
 				fmt.Println(err)
@@ -137,12 +138,26 @@ func interactive(p *agouti.Page, temp string) error {
 				fmt.Println(err)
 			} else {
 				if err := test(temp, quesID); err != nil {
-					return err
+					fmt.Println(err)
 				}
 			}
-		} else if text == "debug" || text == "d" {
-			fmt.Println("debug")
-			fmt.Println(temp)
+		} else if textSplit[0] == "debug" || textSplit[0] == "d" {
+			quesID, _, _, err := getQuestion(p)
+			if err != nil {
+				fmt.Println(err)
+			} else {
+				if len(textSplit) != 2 {
+					fmt.Println("  [ERR] Select a number that you want to debug.")
+				} else {
+					programID, err := strconv.Atoi(textSplit[1])
+					if err != nil {
+						fmt.Println(err)
+					}
+					if err := debug(temp, quesID, programID); err != nil {
+						fmt.Println(err)
+					}
+				}
+			}
 		} else if text == "submit" || text == "s" {
 			quesID, _, _, err := getQuestion(p)
 			if err != nil {
@@ -154,8 +169,9 @@ func interactive(p *agouti.Page, temp string) error {
 			}
 		} else if text == "exit" || text == "e" {
 			break
+		} else if text == "" {
 		} else {
-			fmt.Printf("Unknown Command: %v\n", text)
+			fmt.Printf("  [ERR] Unknown Command: %v\n", text)
 		}
 		fmt.Print("> ")
 	}
@@ -163,16 +179,11 @@ func interactive(p *agouti.Page, temp string) error {
 }
 
 func get(p *agouti.Page, temp string) error {
-	url, err := p.URL()
+	quesID, input, output, err := getQuestion(p)
 	if err != nil {
 		return err
 	}
-	quesID, input, output, err := getQuestion(p)
-	if err != nil {
-		return fmt.Errorf("[ERR]Run this command on the page in question.")
-	}
-	fmt.Printf("ID: %v (%v)\n", quesID, url)
-	fmt.Printf("Get sample: input(%v) output(%v)\n", len(input), len(output))
+	fmt.Printf("  Get sample: input(%v) output(%v)\n", len(input), len(output))
 	if err = downloadSample(quesID, input, output); err != nil {
 		return err
 	}
@@ -195,7 +206,7 @@ func get(p *agouti.Page, temp string) error {
 		}
 		dstPath := filepath.Join(quesPath, tempConfig.File)
 		if !Exists(dstPath) {
-			fmt.Printf("Copy template: %v\n", tempConfig.File)
+			fmt.Printf("  Copy template: %v\n", tempConfig.File)
 			dst, err := os.Create(dstPath)
 			if err != nil {
 				return err
@@ -236,7 +247,7 @@ func getQuestion(p *agouti.Page) (string, []string, []string, error) {
 	if err != nil {
 		quesID, err = p.FindByID("tab-problem").First("h2").Text()
 		if err != nil {
-			return "", []string{}, []string{}, fmt.Errorf("[ERR]This page is not contain a question")
+			return "", []string{}, []string{}, fmt.Errorf("  [ERR] This page is not contain a question.")
 		}
 	}
 	quesID = strings.Split(quesID, ":")[0]
@@ -249,6 +260,11 @@ func getQuestion(p *agouti.Page) (string, []string, []string, error) {
 			output = append(output, strings.TrimSpace(s.Text()))
 		}
 	})
+	url, err := p.URL()
+	if err != nil {
+		return "", []string{}, []string{}, err
+	}
+	fmt.Printf("  ID: %v (%v)\n", quesID, url)
 	return quesID, input, output, nil
 }
 
@@ -312,8 +328,8 @@ func runCommand(cmd *exec.Cmd, verbose bool) (stdout, stderr string, exitCode in
 		return
 	}
 
-	go printOutputWithHeader("", stdoutColor, outReader2, verbose)
-	go printOutputWithHeader("", stderrColor, errReader2, verbose)
+	go printOutputWithHeader("    >> ", stdoutColor, outReader2, verbose)
+	go printOutputWithHeader("    >> ", stderrColor, errReader2, verbose)
 
 	err = cmd.Wait()
 
@@ -342,7 +358,7 @@ func printOutputWithHeader(header, color string, r io.Reader, verbose bool) {
 
 func test(temp, quesID string) error {
 	if temp == "" {
-		return fmt.Errorf("Select a template")
+		return fmt.Errorf("  [ERR] Select a template.")
 	}
 	tempConfig, _, err := getTemplateConfig(temp)
 	if err != nil {
@@ -357,7 +373,6 @@ func test(temp, quesID string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("ID: %v\n", quesID)
 	testDir := filepath.Join(quesDir, "tests")
 	files, err := ioutil.ReadDir(testDir)
 	sampleSize := 0
@@ -376,7 +391,7 @@ func test(temp, quesID string) error {
 	}
 	count := 0
 	for i := 0; i < sampleSize; i++ {
-		fmt.Printf("Test: case %v\n", i+1)
+		fmt.Printf("  Test: case %v\n", i+1)
 		inputPath := filepath.Join(testDir, fmt.Sprintf("input_%v.txt", i))
 		input, err := ioutil.ReadFile(inputPath)
 		if err != nil {
@@ -407,18 +422,24 @@ func test(temp, quesID string) error {
 				}
 			}
 		}
+		var outText string
 		if check {
-			fmt.Printf("  [Success] Passed the test. (time:%vs)\n", (end.Sub(start)).Seconds())
+			outText = fmt.Sprintf("    [Success] Passed the test. (time:%vs)", (end.Sub(start)).Seconds())
+			outText = ansi.Color(outText, "green")
 			count++
 		} else {
-			fmt.Println("  [Falure] Did not pass the test.")
+			outText = "    [Falure] Did not pass the test."
+			outText = ansi.Color(outText, "red")
 		}
+		fmt.Println(outText)
 	}
+	var t string
 	if count == sampleSize {
-		fmt.Printf("Result: Pass %v/%v (All clear)\n", count, sampleSize)
+		t = ansi.Color("All clear!", "green")
 	} else {
-		fmt.Printf("Result: Pass %v/%v\n", count, sampleSize)
+		t = ansi.Color(fmt.Sprintf("%v failed...", sampleSize-count), "red")
 	}
+	fmt.Printf("  [Result] Pass %v/%v (%v)\n", count, sampleSize, t)
 	return nil
 }
 
@@ -436,7 +457,7 @@ func convCmd(cmdText string) (*exec.Cmd, error) {
 	cmdStrings := strings.Split(cmdText, " ")
 	var cmd *exec.Cmd
 	if len(cmdStrings) == 0 {
-		return cmd, fmt.Errorf("Set a execution command to template.toml")
+		return cmd, fmt.Errorf("  [ERR] Set a execution command to template.toml")
 	} else if len(cmdStrings) == 1 {
 		cmd = exec.Command(cmdStrings[0])
 	} else {
@@ -447,13 +468,12 @@ func convCmd(cmdText string) (*exec.Cmd, error) {
 
 func submit(p *agouti.Page, temp, quesID string) error {
 	if temp == "" {
-		return fmt.Errorf("Select a template")
+		return fmt.Errorf("  [ERR] Select a template.")
 	}
 	tempConfig, _, err := getTemplateConfig(temp)
 	if err != nil {
 		return err
 	}
-	fmt.Printf("ID: %v\n", quesID)
 	langSelect := p.FindByID("language_id")
 	if err := langSelect.Select(tempConfig.Lang); err != nil {
 		return err
@@ -471,10 +491,64 @@ func submit(p *agouti.Page, temp, quesID string) error {
 	if err := clipboard.WriteAll(programText); err != nil {
 		return err
 	}
-	fmt.Println("Copied to the clipboard")
+	fmt.Println("  Copied to the clipboard.")
 	return nil
 }
 
+func debug(temp, quesID string, programID int) error {
+	if temp == "" {
+		return fmt.Errorf("  [ERR] Select a template.")
+	}
+	tempConfig, _, err := getTemplateConfig(temp)
+	if err != nil {
+		return err
+	}
+	quesDir, err := getQuesDir(quesID)
+	if err != nil {
+		return err
+	}
+	programPath := filepath.Join(quesDir, tempConfig.File)
+	cmdStrings := strings.Replace(tempConfig.Run, tempConfig.File, programPath, 1)
+	if err != nil {
+		return err
+	}
+	testDir := filepath.Join(quesDir, "tests")
+	files, err := ioutil.ReadDir(testDir)
+	sampleSize := 0
+	for _, file := range files {
+		if strings.Contains(file.Name(), "input_") && strings.Contains(file.Name(), ".txt") {
+			s := strings.Replace(strings.Replace(file.Name(), "input_", "", 1), ".txt", "", 1)
+			n, err := strconv.Atoi(s)
+			if err != nil {
+				return err
+			}
+			n++
+			if n > sampleSize {
+				sampleSize = n
+			}
+		}
+	}
+	if 0 <= programID-1 && programID <= sampleSize {
+		fmt.Printf("  Debug: case %v\n", programID)
+		inputPath := filepath.Join(testDir, fmt.Sprintf("input_%v.txt", programID-1))
+		input, err := ioutil.ReadFile(inputPath)
+		if err != nil {
+			return err
+		}
+		cmd, err := convCmd(cmdStrings)
+		cmd.Stdin = bytes.NewBufferString(string(input))
+		start := time.Now()
+		_, _, _, err = runCommand(cmd, true)
+		if err != nil {
+			return err
+		}
+		end := time.Now()
+		fmt.Printf("  [Finish] time:%vs\n", (end.Sub(start)).Seconds())
+	} else {
+		return fmt.Errorf("  [ERR] Could not find a sample: %v", programID)
+	}
+	return nil
+}
 func init() {
 	rootCmd.AddCommand(runCmd)
 }
