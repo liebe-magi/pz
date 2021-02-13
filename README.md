@@ -12,7 +12,7 @@
 できることと使い方の概要を以下の動画で紹介しています。
 (クリックするとYouTubeページへジャンプします。)
 
-[![概要動画](/img/explain.png)](http://www.youtube.com/watch?v=FTqw5-lfkNE "概要動画")
+[![概要動画](/img/explain.png)](https://youtu.be/FTqw5-lfkNE "概要動画")
 
 ## 導入方法
 
