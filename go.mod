@@ -1,4 +1,4 @@
-module github.com/reeve0930/pz
+module github.com/MagicalLiebe/pz
 
 go 1.15
 

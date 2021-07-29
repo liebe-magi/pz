@@ -37,7 +37,7 @@
 Goの環境構築ができている人は以下のコマンドでインストールしてください。
 
 ```zsh
-$ go get github.com/reeve0930/pz
+$ go get github.com/MagicalLiebe/pz
 ```
 
 ### 動作確認
