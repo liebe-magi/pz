@@ -29,7 +29,7 @@
 
 #### バイナリファイルをダウンロード
 
-[Releases](https://github.com/reeve0930/pz/releases)にある最新版のバイナリファイルをダウンロードし、パスの通っているディレクトリに配置
+[Releases](https://github.com/MagicalLiebe/pz/releases)にある最新版のバイナリファイルをダウンロードし、パスの通っているディレクトリに配置
     - 使用しているOSに合ったものを使うこと
 
 #### `go get`でインストール

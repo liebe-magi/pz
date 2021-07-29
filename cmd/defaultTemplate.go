@@ -1,5 +1,5 @@
 /*
-Copyright © 2021 reeve0930 <reeve0930@gmail.com>
+Copyright © 2021 MagicalLiebe <magical.liebe@gmail.com>
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
